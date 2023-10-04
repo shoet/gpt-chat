@@ -17,7 +17,6 @@ func Test_Repository_AddChatMessage(t *testing.T) {
 		Addr:                 "localhost:33306",
 		Net:                  "tcp",
 		ParseTime:            true,
-		Collation:            "utf8mb4_unicode_ci",
 		AllowNativePasswords: true,
 	}
 	db, closer, err := NewRDB(c.FormatDSN())
