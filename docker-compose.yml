@@ -1,0 +1,18 @@
+version: "3.9"
+services:
+  db:
+    image: mysql:8.0.33
+    platform: linux/arm64/v8
+    container_name: gpt-chat-db
+    environment:
+      MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+      MYSQL_USER: gpt
+      MYSQL_PASSWORD: gpt
+      MYSQL_DATABASE: gpt
+    volumes:
+      - gpt-chat-db:/var/lib/mysql
+      - ./_tools/mysql/conf.d:/etc/mysql/conf.d:cached
+    ports:
+      - "33306:3306"
+volumes:
+  gpt-chat-db:
