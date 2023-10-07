@@ -27,7 +27,7 @@ func (c *ChatService) Chat(category string, message string) error {
 	// TODO: start chat intaractive
 	userMsg := &models.ChatMessage{
 		Category: category,
-		Content:  message,
+		Message:  message,
 		Role:     "user",
 	}
 	apiMsg, err := c.chatGpt.Chat(userMsg)
