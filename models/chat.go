@@ -9,6 +9,11 @@ type ChatMessage struct {
 	Category string        `db:"category"`
 	Message  string        `db:"message"`
 	Role     string        `db:"role"`
+	Summary  string        `db:"summary"`
 	Created  time.Time     `db:"created"`
 	Modified time.Time     `db:"modified"`
+}
+
+type ChatMessageOption struct {
+	Summaries []string
 }
