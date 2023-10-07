@@ -12,6 +12,12 @@ type Repository struct {
 	Clocker clocker.Clocker
 }
 
+func NewRepository(c clocker.Clocker) (*Repository, error) {
+	return &Repository{
+		Clocker: c,
+	}, nil
+}
+
 func (r *Repository) AddChatMessage(db Execer, message *models.ChatMessage) (models.ChatMessageId, error) {
 	sql := `
 	INSERT INTO chat_message 
