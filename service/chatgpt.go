@@ -117,13 +117,13 @@ func (c *SSEClient) Request(req *http.Request, chunkSep string, chunkHandler fun
 
 	chEve := make(chan string)
 	chErr := make(chan error)
-	scanner := SplitScanner(res.Body, chunkSep)
+	sseScanner := NewSSEScanner(res.Body, chunkSep)
 	go func() {
-		for scanner.Scan() {
-			b := scanner.Bytes()
+		for sseScanner.Scan() {
+			b := sseScanner.Bytes()
 			chEve <- string(b)
 		}
-		if err := scanner.Err(); err != nil {
+		if err := sseScanner.Err(); err != nil {
 			chErr <- err
 			return
 		}
@@ -145,19 +145,25 @@ func (c *SSEClient) Request(req *http.Request, chunkSep string, chunkHandler fun
 	}
 }
 
-func SplitScanner(r io.Reader, sep string) *bufio.Scanner {
+type SSEScanner struct {
+	scanner *bufio.Scanner
+}
+
+func NewSSEScanner(r io.Reader, sseSep string) *SSEScanner {
+	// TODO: バッファ周りリファクタリング
 	scanner := bufio.NewScanner(r)
 	initBufferSize := 1024
 	maxBufferSize := 4096
 	scanner.Buffer(make([]byte, initBufferSize), maxBufferSize)
+
 	split := func(data []byte, atEOF bool) (advance int, token []byte, err error) {
 		if atEOF && len(data) == 0 {
 			return 0, nil, nil
 		}
-		beforeSep := bytes.Index(data, []byte(sep)) // 最初sepの直前
+		beforeSep := bytes.Index(data, []byte(sseSep)) // 最初sepの直前
 		if beforeSep >= 0 {
 			// 最初のsepの位置, dataのsepの直前までのスライス, nil
-			return beforeSep + len(sep), data[0:beforeSep], nil
+			return beforeSep + len(sseSep), data[0:beforeSep], nil
 		}
 		if atEOF {
 			// 残りのすべて
@@ -166,5 +172,20 @@ func SplitScanner(r io.Reader, sep string) *bufio.Scanner {
 		return 0, nil, nil
 	}
 	scanner.Split(split)
-	return scanner
+
+	return &SSEScanner{
+		scanner: scanner,
+	}
+}
+
+func (s *SSEScanner) Scan() bool {
+	return s.scanner.Scan()
+}
+
+func (s *SSEScanner) Bytes() []byte {
+	return s.scanner.Bytes()
+}
+
+func (s *SSEScanner) Err() error {
+	return s.scanner.Err()
 }
