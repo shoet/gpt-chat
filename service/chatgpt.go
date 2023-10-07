@@ -44,7 +44,7 @@ func (c *ChatGPTService) Chat(input *models.ChatMessage) (*models.ChatMessage, e
 func (c *ChatGPTService) buildRequestWithStream(input string) (*http.Request, error) {
 	messages := []models.ChatGPTRequestMessage{
 		{Role: "user", Content: input},
-		{Role: "system", Content: "ユーザーからの要求分に最も適した回答を提供して下さい。"},
+		{Role: "system", Content: "ユーザーからの要求文に最も適した回答を提供して下さい。"},
 	}
 	requestBody := models.ChatGPTRequest{
 		Model:    "gpt-3.5-turbo",
