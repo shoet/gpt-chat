@@ -35,11 +35,10 @@ func (c *ChatService) Chat(category string, message string) error {
 		return fmt.Errorf("failed to call ChatGPT API: %w", err)
 	}
 
-	// add storage
-	if err := c.storage.SaveChatHistory(userMsg); err != nil {
+	if err := c.storage.AddChatMessage(userMsg); err != nil {
 		return fmt.Errorf("failed to save chat history: %w", err)
 	}
-	if err := c.storage.SaveChatHistory(apiMsg); err != nil {
+	if err := c.storage.AddChatMessage(apiMsg); err != nil {
 		return fmt.Errorf("failed to save chat history: %w", err)
 	}
 	return nil

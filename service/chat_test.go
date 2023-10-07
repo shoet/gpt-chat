@@ -11,13 +11,13 @@ import (
 func TestChatService_Chat(t *testing.T) {
 	wantChatReq := &models.ChatMessage{
 		Category: "golang",
-		Content:  "hello go",
+		Message:  "hello go",
 		Role:     "user",
 	}
 	wantChatRes := &models.ChatMessage{
 		Id:       1,
 		Category: "golang",
-		Content:  "response message",
+		Message:  "response message",
 		Role:     "api",
 	}
 	mockGpt := &interfaces.ChatGPTMock{}
@@ -30,7 +30,7 @@ func TestChatService_Chat(t *testing.T) {
 
 	mockStorage := &interfaces.StorageMock{}
 	calledSaveChatHistory := 0
-	mockStorage.SaveChatHistoryFunc = func(message *models.ChatMessage) error {
+	mockStorage.AddChatMessageFunc = func(message *models.ChatMessage) error {
 		calledSaveChatHistory += 1
 		if message.Role == "user" {
 			if err := testutil.AssertObject(t, message, wantChatReq); err != nil {
