@@ -24,7 +24,7 @@ var chatCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		msg, err := cmd.Flags().GetString("message")
 		if err != nil {
-			fmt.Println("failed to get message")
+			fmt.Println("failed to get message: %w", err)
 			os.Exit(1)
 		}
 
@@ -36,7 +36,7 @@ var chatCmd = &cobra.Command{
 		storage, err := service.NewStorageRDB(db, repo)
 		chatSrv, err := service.NewChatService(gpt, storage)
 		if err := chatSrv.Chat("", msg); err != nil {
-			fmt.Println("failed to chat")
+			fmt.Println("failed to chat: %w", err)
 			os.Exit(1)
 		}
 
@@ -57,7 +57,7 @@ func buildChatGPTService() *service.ChatGPTService {
 func buildRepository() *store.Repository {
 	repo, err := store.NewRepository(&clocker.RealClocker{})
 	if err != nil {
-		fmt.Println("failed to create repository")
+		fmt.Println("failed to create repository: %w", err)
 		os.Exit(1)
 	}
 	return repo
@@ -76,7 +76,7 @@ func buildDB() (*sqlx.DB, func() error) {
 	}
 	db, closer, err := store.NewRDB(c.FormatDSN())
 	if err != nil {
-		fmt.Println("failed to connect database")
+		fmt.Println("failed to connect database: %w", err)
 		os.Exit(1)
 	}
 	return db, closer
