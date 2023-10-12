@@ -39,3 +39,15 @@ func (s *StorageRDB) ListChatSummary(latest int) ([]string, error) {
 	}
 	return summaries, nil
 }
+
+func (s *StorageRDB) AddSummary(summary *models.ChatSummary) error {
+	tx, err := s.db.Beginx()
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback()
+	if _, err := s.repo.AddSummary(tx, summary); err != nil {
+		return fmt.Errorf("failed to save chat summary: %w", err)
+	}
+	return tx.Commit()
+}

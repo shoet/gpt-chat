@@ -21,12 +21,12 @@ func NewRepository(c clocker.Clocker) (*Repository, error) {
 func (r *Repository) AddChatMessage(db Execer, message *models.ChatMessage) (models.ChatMessageId, error) {
 	sql := `
 	INSERT INTO chat_message 
-		(category, message, role, summary, created, modified)
+		(category, message, role, created, modified)
 	VALUES 
-		(?, ?, ?, ?, ?, ?);
+		(?, ?, ?, ?, ?);
 	`
 	now := r.Clocker.Now()
-	res, err := db.Exec(sql, message.Category, message.Message, message.Role, message.Summary, now, now)
+	res, err := db.Exec(sql, message.Category, message.Message, message.Role, now, now)
 	if err != nil {
 		return 0, fmt.Errorf("failed to insert chat message: %w", err)
 	}
@@ -35,6 +35,25 @@ func (r *Repository) AddChatMessage(db Execer, message *models.ChatMessage) (mod
 		return 0, fmt.Errorf("failed to get last insert id: %w", err)
 	}
 	return models.ChatMessageId(id), nil
+}
+
+func (r *Repository) AddSummary(db Execer, summary *models.ChatSummary) (models.ChatSummaryId, error) {
+	sql := `
+	INSERT INTO chat_summary 
+		(category, summary, created, modified)
+	VALUES 
+		(?, ?, ?, ?);
+	`
+	now := r.Clocker.Now()
+	res, err := db.Exec(sql, summary.Category, summary.Summary, now, now)
+	if err != nil {
+		return 0, fmt.Errorf("failed to insert chat summary: %w", err)
+	}
+	id, err := res.LastInsertId()
+	if err != nil {
+		return 0, fmt.Errorf("failed to get last insert id: %w", err)
+	}
+	return models.ChatSummaryId(id), nil
 }
 
 func (r *Repository) ListChatSummary(db Queryer, latest int) ([]string, error) {

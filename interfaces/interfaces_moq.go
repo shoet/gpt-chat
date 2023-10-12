@@ -21,6 +21,9 @@ var _ ChatGPT = &ChatGPTMock{}
 //			ChatFunc: func(message *models.ChatMessage, option *models.ChatMessageOption) (*models.ChatMessage, error) {
 //				panic("mock out the Chat method")
 //			},
+//			SummaryFunc: func(request *models.ChatMessage, answer *models.ChatMessage) (string, error) {
+//				panic("mock out the Summary method")
+//			},
 //		}
 //
 //		// use mockedChatGPT in code that requires ChatGPT
@@ -31,6 +34,9 @@ type ChatGPTMock struct {
 	// ChatFunc mocks the Chat method.
 	ChatFunc func(message *models.ChatMessage, option *models.ChatMessageOption) (*models.ChatMessage, error)
 
+	// SummaryFunc mocks the Summary method.
+	SummaryFunc func(request *models.ChatMessage, answer *models.ChatMessage) (string, error)
+
 	// calls tracks calls to the methods.
 	calls struct {
 		// Chat holds details about calls to the Chat method.
@@ -40,8 +46,16 @@ type ChatGPTMock struct {
 			// Option is the option argument value.
 			Option *models.ChatMessageOption
 		}
+		// Summary holds details about calls to the Summary method.
+		Summary []struct {
+			// Request is the request argument value.
+			Request *models.ChatMessage
+			// Answer is the answer argument value.
+			Answer *models.ChatMessage
+		}
 	}
-	lockChat sync.RWMutex
+	lockChat    sync.RWMutex
+	lockSummary sync.RWMutex
 }
 
 // Chat calls ChatFunc.
@@ -80,6 +94,42 @@ func (mock *ChatGPTMock) ChatCalls() []struct {
 	return calls
 }
 
+// Summary calls SummaryFunc.
+func (mock *ChatGPTMock) Summary(request *models.ChatMessage, answer *models.ChatMessage) (string, error) {
+	if mock.SummaryFunc == nil {
+		panic("ChatGPTMock.SummaryFunc: method is nil but ChatGPT.Summary was just called")
+	}
+	callInfo := struct {
+		Request *models.ChatMessage
+		Answer  *models.ChatMessage
+	}{
+		Request: request,
+		Answer:  answer,
+	}
+	mock.lockSummary.Lock()
+	mock.calls.Summary = append(mock.calls.Summary, callInfo)
+	mock.lockSummary.Unlock()
+	return mock.SummaryFunc(request, answer)
+}
+
+// SummaryCalls gets all the calls that were made to Summary.
+// Check the length with:
+//
+//	len(mockedChatGPT.SummaryCalls())
+func (mock *ChatGPTMock) SummaryCalls() []struct {
+	Request *models.ChatMessage
+	Answer  *models.ChatMessage
+} {
+	var calls []struct {
+		Request *models.ChatMessage
+		Answer  *models.ChatMessage
+	}
+	mock.lockSummary.RLock()
+	calls = mock.calls.Summary
+	mock.lockSummary.RUnlock()
+	return calls
+}
+
 // Ensure, that StorageMock does implement Storage.
 // If this is not the case, regenerate this file with moq.
 var _ Storage = &StorageMock{}
@@ -92,6 +142,9 @@ var _ Storage = &StorageMock{}
 //		mockedStorage := &StorageMock{
 //			AddChatMessageFunc: func(message *models.ChatMessage) error {
 //				panic("mock out the AddChatMessage method")
+//			},
+//			AddSummaryFunc: func(summary *models.ChatSummary) error {
+//				panic("mock out the AddSummary method")
 //			},
 //			ListChatSummaryFunc: func(latest int) ([]string, error) {
 //				panic("mock out the ListChatSummary method")
@@ -106,6 +159,9 @@ type StorageMock struct {
 	// AddChatMessageFunc mocks the AddChatMessage method.
 	AddChatMessageFunc func(message *models.ChatMessage) error
 
+	// AddSummaryFunc mocks the AddSummary method.
+	AddSummaryFunc func(summary *models.ChatSummary) error
+
 	// ListChatSummaryFunc mocks the ListChatSummary method.
 	ListChatSummaryFunc func(latest int) ([]string, error)
 
@@ -116,6 +172,11 @@ type StorageMock struct {
 			// Message is the message argument value.
 			Message *models.ChatMessage
 		}
+		// AddSummary holds details about calls to the AddSummary method.
+		AddSummary []struct {
+			// Summary is the summary argument value.
+			Summary *models.ChatSummary
+		}
 		// ListChatSummary holds details about calls to the ListChatSummary method.
 		ListChatSummary []struct {
 			// Latest is the latest argument value.
@@ -123,6 +184,7 @@ type StorageMock struct {
 		}
 	}
 	lockAddChatMessage  sync.RWMutex
+	lockAddSummary      sync.RWMutex
 	lockListChatSummary sync.RWMutex
 }
 
@@ -155,6 +217,38 @@ func (mock *StorageMock) AddChatMessageCalls() []struct {
 	mock.lockAddChatMessage.RLock()
 	calls = mock.calls.AddChatMessage
 	mock.lockAddChatMessage.RUnlock()
+	return calls
+}
+
+// AddSummary calls AddSummaryFunc.
+func (mock *StorageMock) AddSummary(summary *models.ChatSummary) error {
+	if mock.AddSummaryFunc == nil {
+		panic("StorageMock.AddSummaryFunc: method is nil but Storage.AddSummary was just called")
+	}
+	callInfo := struct {
+		Summary *models.ChatSummary
+	}{
+		Summary: summary,
+	}
+	mock.lockAddSummary.Lock()
+	mock.calls.AddSummary = append(mock.calls.AddSummary, callInfo)
+	mock.lockAddSummary.Unlock()
+	return mock.AddSummaryFunc(summary)
+}
+
+// AddSummaryCalls gets all the calls that were made to AddSummary.
+// Check the length with:
+//
+//	len(mockedStorage.AddSummaryCalls())
+func (mock *StorageMock) AddSummaryCalls() []struct {
+	Summary *models.ChatSummary
+} {
+	var calls []struct {
+		Summary *models.ChatSummary
+	}
+	mock.lockAddSummary.RLock()
+	calls = mock.calls.AddSummary
+	mock.lockAddSummary.RUnlock()
 	return calls
 }
 

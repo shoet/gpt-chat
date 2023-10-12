@@ -25,7 +25,13 @@ type ChatGPTResponseDelta struct {
 }
 
 type ChatGPTRequestChoice struct {
-	Index        int                  `json:"index"`
-	Delta        ChatGPTResponseDelta `json:"delta"`
-	FinishReason string               `json:"finish_reason"`
+	Index        int                    `json:"index"`
+	Delta        ChatGPTResponseDelta   `json:"delta"`
+	Message      ChatGPTResponseMessage `json:"message"`
+	FinishReason string                 `json:"finish_reason"`
+}
+
+type ChatGPTResponseMessage struct {
+	Role    string `json:"role"`
+	Content string `json:"content"`
 }

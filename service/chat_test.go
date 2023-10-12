@@ -21,7 +21,7 @@ func TestChatService_Chat(t *testing.T) {
 		Role:     "api",
 	}
 	mockGpt := &interfaces.ChatGPTMock{}
-	mockGpt.ChatFunc = func(message *models.ChatMessage) (*models.ChatMessage, error) {
+	mockGpt.ChatFunc = func(message *models.ChatMessage, option *models.ChatMessageOption) (*models.ChatMessage, error) {
 		if err := testutil.AssertObject(t, message, wantChatReq); err != nil {
 			t.Errorf("failed to assert chat request: %v", err)
 		}

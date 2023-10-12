@@ -22,7 +22,7 @@ var chatCmd = &cobra.Command{
 	Long: `Start ChatGPT on ChatGPTAPI. This program is a CLI tool to start ChatGPT on ChatGPTAPI. 
 	Chat content is stored database.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		msg, err := cmd.Flags().GetString("message")
+		category, err := cmd.Flags().GetString("category")
 		if err != nil {
 			fmt.Println("failed to get message: %w", err)
 			os.Exit(1)
@@ -35,12 +35,17 @@ var chatCmd = &cobra.Command{
 
 		storage, err := service.NewStorageRDB(db, repo)
 		chatSrv, err := service.NewChatService(gpt, storage)
-		if err := chatSrv.Chat("", msg); err != nil {
+		if err := chatSrv.ChatInteractive(category); err != nil {
 			fmt.Println("failed to chat: %w", err)
 			os.Exit(1)
 		}
 
 	},
+}
+
+func init() {
+	chatCmd.Flags().StringP("category", "c", "", "chat category")
+	rootCmd.AddCommand(chatCmd)
 }
 
 func buildChatGPTService() *service.ChatGPTService {
@@ -80,9 +85,4 @@ func buildDB() (*sqlx.DB, func() error) {
 		os.Exit(1)
 	}
 	return db, closer
-}
-
-func init() {
-	chatCmd.Flags().StringP("message", "m", "", "chat message")
-	rootCmd.AddCommand(chatCmd)
 }

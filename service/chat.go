@@ -1,8 +1,10 @@
 package service
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
+	"os"
 
 	"github.com/shoet/gpt-chat/interfaces"
 	"github.com/shoet/gpt-chat/models"
@@ -24,20 +26,22 @@ func NewChatService(
 	return chat, nil
 }
 
-func (c *ChatService) Chat(category string, message string) error {
-	// TODO: start chat intaractive
-	summaries, err := c.storage.ListChatSummary(10)
-	if err != nil {
-		return fmt.Errorf("failed to load chat history: %w", err)
+func (c *ChatService) ChatInteractive(category string) error {
+	for {
+		message := Input(fmt.Sprintf("[%s] >> ", category))
+		if err := c.Chat(category, message); err != nil {
+			return fmt.Errorf("failed to chat: %w", err)
+		}
 	}
+}
+
+func (c *ChatService) Chat(category string, message string) error {
 	userMsg := &models.ChatMessage{
 		Category: category,
 		Message:  message,
 		Role:     "user",
 	}
-	option := &models.ChatMessageOption{
-		Summaries: summaries,
-	}
+	option := &models.ChatMessageOption{}
 	apiMsg, err := c.chatGpt.Chat(userMsg, option)
 	if err != nil {
 		return fmt.Errorf("failed to call ChatGPT API: %w", err)
@@ -46,14 +50,26 @@ func (c *ChatService) Chat(category string, message string) error {
 		return fmt.Errorf("failed to save chat history: %w", err)
 	}
 
-	summary, err := ParseSummary(apiMsg)
-	if err != nil {
-		return fmt.Errorf("failed to parse summary: %w", err)
-	}
-	apiMsg.Summary = summary
 	if err := c.storage.AddChatMessage(apiMsg); err != nil {
 		return fmt.Errorf("failed to save chat history: %w", err)
 	}
+
+	go func() {
+		summary, err := c.chatGpt.Summary(userMsg, apiMsg)
+		if err != nil {
+			fmt.Printf("failed to call ChatGPT API: %v\n", err)
+			return
+		}
+		s := &models.ChatSummary{
+			Category: category,
+			Summary:  summary,
+		}
+		if err := c.storage.AddSummary(s); err != nil {
+			fmt.Printf("failed to save summary: %v\n", err)
+			return
+		}
+	}()
+
 	return nil
 }
 
@@ -65,4 +81,12 @@ func ParseSummary(m *models.ChatMessage) (string, error) {
 		return "", fmt.Errorf("failed to parse summary: %w", err)
 	}
 	return s.Summary, nil
+}
+
+func Input(prompt string) string {
+	fmt.Print(prompt)
+	scanner := bufio.NewScanner(os.Stdin)
+	scanner.Scan()
+	text := scanner.Text()
+	return text
 }
