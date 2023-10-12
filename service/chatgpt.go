@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -12,6 +13,7 @@ import (
 
 	"github.com/shoet/gpt-chat/interfaces"
 	"github.com/shoet/gpt-chat/models"
+	"github.com/shoet/gpt-chat/util"
 )
 
 type ChatGPTService struct {
@@ -27,11 +29,11 @@ func NewChatGPTService(apiKey string, client interfaces.Client) *ChatGPTService 
 }
 
 func (c *ChatGPTService) Chat(input *models.ChatMessage, option *models.ChatMessageOption) (*models.ChatMessage, error) {
-	req, err := c.buildRequestWithStream(input, option)
+	req, err := c.buildChatRequestWithStream(input, option)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build request: %w", err)
 	}
-	resp, err := c.executeRequestWithStream(req)
+	resp, err := c.executeChatRequestWithStream(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute request: %w", err)
 	}
@@ -43,7 +45,25 @@ func (c *ChatGPTService) Chat(input *models.ChatMessage, option *models.ChatMess
 	return &respMessage, nil
 }
 
-func (c *ChatGPTService) buildRequestWithStream(input *models.ChatMessage, option *models.ChatMessageOption) (*http.Request, error) {
+func (c *ChatGPTService) Summary(request *models.ChatMessage, answer *models.ChatMessage) (string, error) {
+	req, err := c.buildSummaryRequest(request, answer)
+	if err != nil {
+		return "", fmt.Errorf("failed to build request: %w", err)
+	}
+	resp, err := c.client.Do(req)
+	defer resp.Body.Close()
+	chatGptResponse := &models.ChatGPTResponse{}
+	b, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("failed to read response body: %w", err)
+	}
+	if err := json.Unmarshal(b, chatGptResponse); err != nil {
+		return "", fmt.Errorf("failed to unmarshal response: %w", err)
+	}
+	return chatGptResponse.Choices[0].Message.Content, nil
+}
+
+func (c *ChatGPTService) buildChatRequestWithStream(input *models.ChatMessage, option *models.ChatMessageOption) (*http.Request, error) {
 	systemTemplate, err := LoadChatSystemTemplate(option.Summaries)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load system template: %w", err)
@@ -75,7 +95,7 @@ func (c *ChatGPTService) buildRequestWithStream(input *models.ChatMessage, optio
 	return req, nil
 }
 
-func (c *ChatGPTService) executeRequestWithStream(req *http.Request) ([]byte, error) {
+func (c *ChatGPTService) executeChatRequestWithStream(req *http.Request) ([]byte, error) {
 	header := "data:"
 	var buffer []byte
 	chunkedCallback := func(b []byte) error {
@@ -85,6 +105,7 @@ func (c *ChatGPTService) executeRequestWithStream(req *http.Request) ([]byte, er
 		}
 		b = []byte(strings.TrimSpace(string(b)))
 		if string(b) == "[DONE]" {
+			w.Write([]byte("\n"))
 			return nil
 		}
 
@@ -109,6 +130,50 @@ func (c *ChatGPTService) executeRequestWithStream(req *http.Request) ([]byte, er
 	return buffer, nil
 }
 
+func (c *ChatGPTService) buildSummaryRequest(
+	request *models.ChatMessage, answer *models.ChatMessage,
+) (*http.Request, error) {
+	summaryTemplate, err := LoadSummaryTemplate()
+	if err != nil {
+		return nil, fmt.Errorf("failed to load summary template: %w", err)
+	}
+	input := struct {
+		User   string `json:"user"`
+		System string `json:"system"`
+	}{
+		User:   request.Message,
+		System: answer.Message,
+	}
+	jsonB, err := json.Marshal(input)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal request body: %w", err)
+	}
+	messages := []models.ChatGPTRequestMessage{
+		{Role: "user", Content: string(jsonB)},
+		{Role: "system", Content: summaryTemplate},
+	}
+	requestBody := models.ChatGPTRequest{
+		Model:    "gpt-3.5-turbo",
+		Messages: messages,
+	}
+	b, err := json.Marshal(requestBody)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal request body: %w", err)
+	}
+
+	req, err := http.NewRequest(
+		http.MethodPost,
+		"https://api.openai.com/v1/chat/completions",
+		bytes.NewBuffer([]byte(b)),
+	)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.apiKey))
+	return req, nil
+}
+
 func LoadChatSystemTemplate(chatSummaries []string) (string, error) {
 	systemTemplate := struct {
 		ChatHistory string
@@ -128,12 +193,25 @@ func LoadChatSystemTemplate(chatSummaries []string) (string, error) {
 	return b.String(), nil
 }
 
+func LoadSummaryTemplate() (string, error) {
+	templateTxt, err := LoadChatTemplate("chatgpt/summary.txt")
+	if err != nil {
+		return "", fmt.Errorf("failed to load template: %w", err)
+	}
+	return templateTxt, nil
+}
+
 func LoadChatTemplate(templateName string) (string, error) {
 	cwd, err := os.Getwd()
 	if err != nil {
 		return "", fmt.Errorf("failed to get current directory: %w", err)
 	}
-	templateDir := filepath.Join(cwd, "templates")
+	rootDir, err := util.GetProjectRoot(cwd)
+	if err != nil {
+		return "", fmt.Errorf("failed to get project root: %w", err)
+	}
+
+	templateDir := filepath.Join(rootDir, "templates")
 	b, err := os.ReadFile(filepath.Join(templateDir, templateName))
 	if err != nil {
 		return "", fmt.Errorf("failed to read template file: %w", err)
