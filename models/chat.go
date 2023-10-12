@@ -1,6 +1,8 @@
 package models
 
-import "time"
+import (
+	"time"
+)
 
 type ChatMessageId int
 
@@ -24,5 +26,5 @@ type ChatSummary struct {
 }
 
 type ChatMessageOption struct {
-	Summaries []string
+	Summaries []*ChatSummary
 }

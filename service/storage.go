@@ -32,8 +32,8 @@ func (s *StorageRDB) AddChatMessage(message *models.ChatMessage) error {
 	return tx.Commit()
 }
 
-func (s *StorageRDB) ListChatSummary(latest int) ([]string, error) {
-	summaries, err := s.repo.ListChatSummary(s.db, latest)
+func (s *StorageRDB) ListChatSummary(category string, latest int) ([]*models.ChatSummary, error) {
+	summaries, err := s.repo.ListChatSummary(s.db, category, latest)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list chat summaries: %w", err)
 	}
