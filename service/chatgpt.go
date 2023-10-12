@@ -63,7 +63,9 @@ func (c *ChatGPTService) Summary(request *models.ChatMessage, answer *models.Cha
 	return chatGptResponse.Choices[0].Message.Content, nil
 }
 
-func (c *ChatGPTService) buildChatRequestWithStream(input *models.ChatMessage, option *models.ChatMessageOption) (*http.Request, error) {
+func (c *ChatGPTService) buildChatRequestWithStream(
+	input *models.ChatMessage, option *models.ChatMessageOption,
+) (*http.Request, error) {
 	systemTemplate, err := LoadChatSystemTemplate(option.Summaries)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load system template: %w", err)
@@ -174,11 +176,18 @@ func (c *ChatGPTService) buildSummaryRequest(
 	return req, nil
 }
 
-func LoadChatSystemTemplate(chatSummaries []string) (string, error) {
+func LoadChatSystemTemplate(chatSummaries []*models.ChatSummary) (string, error) {
+	histories := []string{}
+	for i, _ := range chatSummaries {
+		histories = append(
+			histories,
+			fmt.Sprintf("%d. %s", i+1, chatSummaries[len(chatSummaries)-i-1].Summary),
+		)
+	}
 	systemTemplate := struct {
 		ChatHistory string
 	}{
-		ChatHistory: strings.Join(chatSummaries, "\n"),
+		ChatHistory: strings.Join(histories, "\n"),
 	}
 	templateTxt, err := LoadChatTemplate("chatgpt/system.txt")
 	if err != nil {

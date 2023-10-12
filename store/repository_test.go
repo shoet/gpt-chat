@@ -74,8 +74,3 @@ func Test_Repository_AddChatMessage(t *testing.T) {
 		_ = closer()
 	})
 }
-
-func Test_Repository_ListChatSummary(t *testing.T) {
-	t.Skip("リファクタリング中")
-
-}

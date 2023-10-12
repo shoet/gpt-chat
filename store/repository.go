@@ -56,32 +56,26 @@ func (r *Repository) AddSummary(db Execer, summary *models.ChatSummary) (models.
 	return models.ChatSummaryId(id), nil
 }
 
-func (r *Repository) ListChatSummary(db Queryer, latest int) ([]string, error) {
+func (r *Repository) ListChatSummary(db Queryer, category string, latest int) ([]*models.ChatSummary, error) {
 	sql := `
 	SELECT
-		summary
+		id, category, summary, created, modified
 	FROM
-		chat_message
+		chat_summary
 	WHERE
-		summary IS NOT NULL
+		summary IS NOT NULL AND summary != ''
+		AND category = ?
 	ORDER BY 
 		id DESC
 	LIMIT ?
 	;
 	`
-	type summary struct {
-		Summary string `db:"summary"`
-	}
-	var rows []*summary
-	err := db.Select(&rows, sql, latest)
+	var rows []*models.ChatSummary
+	err := db.Select(&rows, sql, category, latest)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list chat summaries: %w", err)
 	}
-	resp := []string{}
-	for _, s := range rows {
-		resp = append(resp, s.Summary)
-	}
-	return resp, nil
+	return rows, nil
 }
 
 type Execer interface {

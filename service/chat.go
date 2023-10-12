@@ -36,12 +36,15 @@ func (c *ChatService) ChatInteractive(category string) error {
 }
 
 func (c *ChatService) Chat(category string, message string) error {
+	summaries, err := c.storage.ListChatSummary(category, 10)
 	userMsg := &models.ChatMessage{
 		Category: category,
 		Message:  message,
 		Role:     "user",
 	}
-	option := &models.ChatMessageOption{}
+	option := &models.ChatMessageOption{
+		Summaries: summaries,
+	}
 	apiMsg, err := c.chatGpt.Chat(userMsg, option)
 	if err != nil {
 		return fmt.Errorf("failed to call ChatGPT API: %w", err)

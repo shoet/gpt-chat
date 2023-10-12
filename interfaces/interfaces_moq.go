@@ -146,7 +146,7 @@ var _ Storage = &StorageMock{}
 //			AddSummaryFunc: func(summary *models.ChatSummary) error {
 //				panic("mock out the AddSummary method")
 //			},
-//			ListChatSummaryFunc: func(latest int) ([]string, error) {
+//			ListChatSummaryFunc: func(category string, latest int) ([]*models.ChatSummary, error) {
 //				panic("mock out the ListChatSummary method")
 //			},
 //		}
@@ -163,7 +163,7 @@ type StorageMock struct {
 	AddSummaryFunc func(summary *models.ChatSummary) error
 
 	// ListChatSummaryFunc mocks the ListChatSummary method.
-	ListChatSummaryFunc func(latest int) ([]string, error)
+	ListChatSummaryFunc func(category string, latest int) ([]*models.ChatSummary, error)
 
 	// calls tracks calls to the methods.
 	calls struct {
@@ -179,6 +179,8 @@ type StorageMock struct {
 		}
 		// ListChatSummary holds details about calls to the ListChatSummary method.
 		ListChatSummary []struct {
+			// Category is the category argument value.
+			Category string
 			// Latest is the latest argument value.
 			Latest int
 		}
@@ -253,19 +255,21 @@ func (mock *StorageMock) AddSummaryCalls() []struct {
 }
 
 // ListChatSummary calls ListChatSummaryFunc.
-func (mock *StorageMock) ListChatSummary(latest int) ([]string, error) {
+func (mock *StorageMock) ListChatSummary(category string, latest int) ([]*models.ChatSummary, error) {
 	if mock.ListChatSummaryFunc == nil {
 		panic("StorageMock.ListChatSummaryFunc: method is nil but Storage.ListChatSummary was just called")
 	}
 	callInfo := struct {
-		Latest int
+		Category string
+		Latest   int
 	}{
-		Latest: latest,
+		Category: category,
+		Latest:   latest,
 	}
 	mock.lockListChatSummary.Lock()
 	mock.calls.ListChatSummary = append(mock.calls.ListChatSummary, callInfo)
 	mock.lockListChatSummary.Unlock()
-	return mock.ListChatSummaryFunc(latest)
+	return mock.ListChatSummaryFunc(category, latest)
 }
 
 // ListChatSummaryCalls gets all the calls that were made to ListChatSummary.
@@ -273,10 +277,12 @@ func (mock *StorageMock) ListChatSummary(latest int) ([]string, error) {
 //
 //	len(mockedStorage.ListChatSummaryCalls())
 func (mock *StorageMock) ListChatSummaryCalls() []struct {
-	Latest int
+	Category string
+	Latest   int
 } {
 	var calls []struct {
-		Latest int
+		Category string
+		Latest   int
 	}
 	mock.lockListChatSummary.RLock()
 	calls = mock.calls.ListChatSummary
