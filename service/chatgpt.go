@@ -2,18 +2,16 @@ package service
 
 import (
 	"bytes"
+	_ "embed"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
-	"path/filepath"
 	"strings"
-	"text/template"
 
 	"github.com/shoet/gpt-chat/interfaces"
 	"github.com/shoet/gpt-chat/models"
-	"github.com/shoet/gpt-chat/util"
 )
 
 type ChatGPTService struct {
@@ -66,13 +64,9 @@ func (c *ChatGPTService) Summary(request *models.ChatMessage, answer *models.Cha
 func (c *ChatGPTService) buildChatRequestWithStream(
 	input *models.ChatMessage, option *models.ChatMessageOption,
 ) (*http.Request, error) {
-	systemTemplate, err := LoadChatSystemTemplate(option.Summaries)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load system template: %w", err)
-	}
 	messages := []models.ChatGPTRequestMessage{
 		{Role: "user", Content: input.Message},
-		{Role: "system", Content: systemTemplate},
+		{Role: "system", Content: gptRequestSummaryTemplate},
 	}
 	requestBody := models.ChatGPTRequest{
 		Model:    "gpt-3.5-turbo",
@@ -135,10 +129,6 @@ func (c *ChatGPTService) executeChatRequestWithStream(req *http.Request) ([]byte
 func (c *ChatGPTService) buildSummaryRequest(
 	request *models.ChatMessage, answer *models.ChatMessage,
 ) (*http.Request, error) {
-	summaryTemplate, err := LoadSummaryTemplate()
-	if err != nil {
-		return nil, fmt.Errorf("failed to load summary template: %w", err)
-	}
 	input := struct {
 		User   string `json:"user"`
 		System string `json:"system"`
@@ -152,7 +142,7 @@ func (c *ChatGPTService) buildSummaryRequest(
 	}
 	messages := []models.ChatGPTRequestMessage{
 		{Role: "user", Content: string(jsonB)},
-		{Role: "system", Content: summaryTemplate},
+		{Role: "system", Content: gptRequestSystemTemplate},
 	}
 	requestBody := models.ChatGPTRequest{
 		Model:    "gpt-3.5-turbo",
@@ -176,54 +166,8 @@ func (c *ChatGPTService) buildSummaryRequest(
 	return req, nil
 }
 
-func LoadChatSystemTemplate(chatSummaries []*models.ChatSummary) (string, error) {
-	histories := []string{}
-	for i, _ := range chatSummaries {
-		histories = append(
-			histories,
-			fmt.Sprintf("%d. %s", i+1, chatSummaries[len(chatSummaries)-i-1].Summary),
-		)
-	}
-	systemTemplate := struct {
-		ChatHistory string
-	}{
-		ChatHistory: strings.Join(histories, "\n"),
-	}
-	templateTxt, err := LoadChatTemplate("chatgpt/system.txt")
-	if err != nil {
-		return "", fmt.Errorf("failed to load template: %w", err)
-	}
-	t, err := template.New("system").Parse(templateTxt)
-	if err != nil {
-		return "", fmt.Errorf("failed to parse template: %v", err)
-	}
-	var b bytes.Buffer
-	t.Execute(&b, systemTemplate)
-	return b.String(), nil
-}
+//go:embed templates/chatgpt/system.txt
+var gptRequestSystemTemplate string
 
-func LoadSummaryTemplate() (string, error) {
-	templateTxt, err := LoadChatTemplate("chatgpt/summary.txt")
-	if err != nil {
-		return "", fmt.Errorf("failed to load template: %w", err)
-	}
-	return templateTxt, nil
-}
-
-func LoadChatTemplate(templateName string) (string, error) {
-	cwd, err := os.Getwd()
-	if err != nil {
-		return "", fmt.Errorf("failed to get current directory: %w", err)
-	}
-	rootDir, err := util.GetProjectRoot(cwd)
-	if err != nil {
-		return "", fmt.Errorf("failed to get project root: %w", err)
-	}
-
-	templateDir := filepath.Join(rootDir, "templates")
-	b, err := os.ReadFile(filepath.Join(templateDir, templateName))
-	if err != nil {
-		return "", fmt.Errorf("failed to read template file: %w", err)
-	}
-	return string(b), nil
-}
+//go:embed templates/chatgpt/summary.txt
+var gptRequestSummaryTemplate string
