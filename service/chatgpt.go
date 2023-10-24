@@ -66,7 +66,7 @@ func (c *ChatGPTService) buildChatRequestWithStream(
 ) (*http.Request, error) {
 	messages := []models.ChatGPTRequestMessage{
 		{Role: "user", Content: input.Message},
-		{Role: "system", Content: gptRequestSummaryTemplate},
+		{Role: "system", Content: gptRequestSystemTemplate},
 	}
 	requestBody := models.ChatGPTRequest{
 		Model:    "gpt-3.5-turbo",
@@ -142,7 +142,7 @@ func (c *ChatGPTService) buildSummaryRequest(
 	}
 	messages := []models.ChatGPTRequestMessage{
 		{Role: "user", Content: string(jsonB)},
-		{Role: "system", Content: gptRequestSystemTemplate},
+		{Role: "system", Content: gptRequestSummaryTemplate},
 	}
 	requestBody := models.ChatGPTRequest{
 		Model:    "gpt-3.5-turbo",
