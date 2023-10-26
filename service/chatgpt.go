@@ -69,7 +69,7 @@ func (c *ChatGPTService) buildChatRequestWithStream(
 		{Role: "system", Content: gptRequestSystemTemplate},
 	}
 	requestBody := models.ChatGPTRequest{
-		Model:    "gpt-3.5-turbo",
+		Model:    "gpt-4",
 		Messages: messages,
 		Stream:   true,
 	}

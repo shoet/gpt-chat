@@ -2,6 +2,7 @@ package service
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -89,7 +90,20 @@ func ParseSummary(m *models.ChatMessage) (string, error) {
 func Input(prompt string) string {
 	fmt.Print(prompt)
 	scanner := bufio.NewScanner(os.Stdin)
+	scanner.Split(nnSplitFunc)
 	scanner.Scan()
 	text := scanner.Text()
 	return text
+}
+
+func nnSplitFunc(data []byte, atEOF bool) (advance int, token []byte, err error) {
+	nn := "\n\n"
+	if atEOF && len(data) == 0 {
+		return 0, nil, nil
+	}
+	idx := bytes.Index(data, []byte(nn))
+	if idx >= 0 {
+		return idx + len(nn), data[0:idx], nil
+	}
+	return 0, nil, nil
 }
