@@ -146,6 +146,9 @@ var _ Storage = &StorageMock{}
 //			AddSummaryFunc: func(summary *models.ChatSummary) error {
 //				panic("mock out the AddSummary method")
 //			},
+//			ListChatHistoryFunc: func(category string, latest int) (models.ChatMessages, error) {
+//				panic("mock out the ListChatHistory method")
+//			},
 //			ListChatSummaryFunc: func(category string, latest int) ([]*models.ChatSummary, error) {
 //				panic("mock out the ListChatSummary method")
 //			},
@@ -162,6 +165,9 @@ type StorageMock struct {
 	// AddSummaryFunc mocks the AddSummary method.
 	AddSummaryFunc func(summary *models.ChatSummary) error
 
+	// ListChatHistoryFunc mocks the ListChatHistory method.
+	ListChatHistoryFunc func(category string, latest int) (models.ChatMessages, error)
+
 	// ListChatSummaryFunc mocks the ListChatSummary method.
 	ListChatSummaryFunc func(category string, latest int) ([]*models.ChatSummary, error)
 
@@ -177,6 +183,13 @@ type StorageMock struct {
 			// Summary is the summary argument value.
 			Summary *models.ChatSummary
 		}
+		// ListChatHistory holds details about calls to the ListChatHistory method.
+		ListChatHistory []struct {
+			// Category is the category argument value.
+			Category string
+			// Latest is the latest argument value.
+			Latest int
+		}
 		// ListChatSummary holds details about calls to the ListChatSummary method.
 		ListChatSummary []struct {
 			// Category is the category argument value.
@@ -187,6 +200,7 @@ type StorageMock struct {
 	}
 	lockAddChatMessage  sync.RWMutex
 	lockAddSummary      sync.RWMutex
+	lockListChatHistory sync.RWMutex
 	lockListChatSummary sync.RWMutex
 }
 
@@ -251,6 +265,42 @@ func (mock *StorageMock) AddSummaryCalls() []struct {
 	mock.lockAddSummary.RLock()
 	calls = mock.calls.AddSummary
 	mock.lockAddSummary.RUnlock()
+	return calls
+}
+
+// ListChatHistory calls ListChatHistoryFunc.
+func (mock *StorageMock) ListChatHistory(category string, latest int) (models.ChatMessages, error) {
+	if mock.ListChatHistoryFunc == nil {
+		panic("StorageMock.ListChatHistoryFunc: method is nil but Storage.ListChatHistory was just called")
+	}
+	callInfo := struct {
+		Category string
+		Latest   int
+	}{
+		Category: category,
+		Latest:   latest,
+	}
+	mock.lockListChatHistory.Lock()
+	mock.calls.ListChatHistory = append(mock.calls.ListChatHistory, callInfo)
+	mock.lockListChatHistory.Unlock()
+	return mock.ListChatHistoryFunc(category, latest)
+}
+
+// ListChatHistoryCalls gets all the calls that were made to ListChatHistory.
+// Check the length with:
+//
+//	len(mockedStorage.ListChatHistoryCalls())
+func (mock *StorageMock) ListChatHistoryCalls() []struct {
+	Category string
+	Latest   int
+} {
+	var calls []struct {
+		Category string
+		Latest   int
+	}
+	mock.lockListChatHistory.RLock()
+	calls = mock.calls.ListChatHistory
+	mock.lockListChatHistory.RUnlock()
 	return calls
 }
 

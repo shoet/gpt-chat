@@ -1,6 +1,7 @@
 package store
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/go-sql-driver/mysql"
@@ -67,6 +68,42 @@ func Test_Repository_AddChatMessage(t *testing.T) {
 
 	if err := testutil.AssertObject(t, want, got[0]); err != nil {
 		t.Fatalf("failed to assert object: %v", err)
+	}
+
+	t.Cleanup(func() {
+		tx.Rollback()
+		_ = closer()
+	})
+}
+
+func Test_Repository_ListChatHistory(t *testing.T) {
+	db, closer := prepareDB(t)
+	tx, err := db.Beginx()
+	if err != nil {
+		t.Fatalf("failed to begin transaction: %v", err)
+	}
+
+	clocker := &clocker.FixedClocker{}
+	sut := &Repository{
+		Clocker: clocker,
+	}
+
+	messages, err := sut.ListChatHistory(tx, "golang", 10)
+	if err != nil {
+		t.Fatalf("failed to list chat message: %v", err)
+	}
+
+	if len(messages) == 0 {
+		t.Fatalf("failed len chat messages: %v", err)
+	}
+
+	sorted, err := messages.SortByCreated(false)
+	if err != nil {
+		t.Fatalf("failed to sort chat messages: %v", err)
+	}
+
+	for _, m := range *sorted {
+		fmt.Println(m.Created, m.Role)
 	}
 
 	t.Cleanup(func() {
