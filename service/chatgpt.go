@@ -64,10 +64,15 @@ func (c *ChatGPTService) Summary(request *models.ChatMessage, answer *models.Cha
 func (c *ChatGPTService) buildChatRequestWithStream(
 	input *models.ChatMessage, option *models.ChatMessageOption,
 ) (*http.Request, error) {
-	messages := []models.ChatGPTRequestMessage{
-		{Role: "user", Content: input.Message},
-		{Role: "system", Content: gptRequestSystemTemplate},
+	sortedAscHistories, err := option.LatestHistory.SortByCreated(false)
+	if err != nil {
+		return nil, fmt.Errorf("failed to sort chat histories: %w", err)
 	}
+	var messages []models.ChatGPTRequestMessage
+	for _, history := range *sortedAscHistories {
+		messages = append(messages, history.GPTRequestMessage())
+	}
+	messages = append(messages, input.GPTRequestMessage())
 	requestBody := models.ChatGPTRequest{
 		Model:    "gpt-4",
 		Messages: messages,

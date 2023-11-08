@@ -3,6 +3,7 @@ package service
 import (
 	"fmt"
 	"net/http"
+	"net/http/httputil"
 	"os"
 	"testing"
 
@@ -32,4 +33,40 @@ func Test_ChatGPTService_Summary(t *testing.T) {
 		t.Fatal(err)
 	}
 	fmt.Println(summary)
+}
+
+func Test_buildChatRequestWithStream(t *testing.T) {
+
+	client := http.Client{}
+	c := NewChatGPTService("test", &client)
+	m := &models.ChatMessage{
+		Category: "golang",
+		Message:  "test",
+		Role:     "user",
+	}
+	o := &models.ChatMessageOption{
+		LatestHistory: []*models.ChatMessage{
+			&models.ChatMessage{
+				Category: "golang",
+				Message:  "request",
+				Role:     "user",
+			},
+			&models.ChatMessage{
+				Category: "golang",
+				Message:  "response",
+				Role:     "system",
+			},
+		},
+	}
+	req, err := c.buildChatRequestWithStream(m, o)
+	if err != nil {
+		t.Fatalf("failed to build request: %v", err)
+	}
+
+	dump, err := httputil.DumpRequest(req, true)
+	if err != nil {
+		t.Fatalf("failed to dump request: %v", err)
+	}
+	fmt.Println(string(dump))
+
 }

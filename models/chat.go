@@ -1,6 +1,7 @@
 package models
 
 import (
+	"sort"
 	"time"
 )
 
@@ -15,6 +16,28 @@ type ChatMessage struct {
 	Modified time.Time     `db:"modified"`
 }
 
+type ChatMessages []*ChatMessage
+
+func (c *ChatMessages) SortByCreated(desc bool) (*ChatMessages, error) {
+	if desc {
+		sort.SliceStable(*c, func(i, j int) bool {
+			return (*c)[i].Created.After((*c)[j].Created)
+		})
+	} else {
+		sort.SliceStable(*c, func(i, j int) bool {
+			return (*c)[i].Created.Before((*c)[j].Created)
+		})
+	}
+	return c, nil
+}
+
+func (c *ChatMessage) GPTRequestMessage() ChatGPTRequestMessage {
+	return ChatGPTRequestMessage{
+		Role:    c.Role,
+		Content: c.Message,
+	}
+}
+
 type ChatSummaryId int
 
 type ChatSummary struct {
@@ -26,5 +49,6 @@ type ChatSummary struct {
 }
 
 type ChatMessageOption struct {
-	Summaries []*ChatSummary
+	Summaries     []*ChatSummary
+	LatestHistory ChatMessages
 }

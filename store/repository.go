@@ -78,6 +78,29 @@ func (r *Repository) ListChatSummary(db Queryer, category string, latest int) ([
 	return rows, nil
 }
 
+func (r *Repository) ListChatHistory(
+	db Queryer, category string, latest int,
+) (models.ChatMessages, error) {
+	sql := `
+	SELECT
+		id, category, message, role, created, modified
+	FROM
+		chat_message
+	WHERE
+		category = ?
+	ORDER BY
+		created DESC
+	LIMIT ?
+	;
+	`
+	var rows models.ChatMessages
+	err := db.Select(&rows, sql, category, latest)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list chat message: %w", err)
+	}
+	return rows, nil
+}
+
 type Execer interface {
 	Exec(query string, args ...any) (sql.Result, error)
 }

@@ -40,6 +40,14 @@ func (s *StorageRDB) ListChatSummary(category string, latest int) ([]*models.Cha
 	return summaries, nil
 }
 
+func (s *StorageRDB) ListChatHistory(category string, latest int) (models.ChatMessages, error) {
+	histories, err := s.repo.ListChatHistory(s.db, category, latest)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list chat histories: %w", err)
+	}
+	return histories, nil
+}
+
 func (s *StorageRDB) AddSummary(summary *models.ChatSummary) error {
 	tx, err := s.db.Beginx()
 	if err != nil {
